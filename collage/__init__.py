@@ -1,0 +1,1 @@
+# Collage package init
