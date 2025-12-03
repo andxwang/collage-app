@@ -10,8 +10,8 @@ def main():
     parser = argparse.ArgumentParser(description='Create a photo collage.')
     parser.add_argument('style', choices=['3-vertical', '4-vertical', '4-grid', '5-2-3'], help='Collage style')
     parser.add_argument('images', nargs='+', help='Paths to images')
-    parser.add_argument('--output', default='collage.jpg', help='Output file name')
-    parser.add_argument('--size', type=str, default=None, help='Output size WxH, e.g. 1080x1920')
+    parser.add_argument('-o', '--output', default='collage.jpg', help='Output file name')
+    parser.add_argument('-s', '--size', type=str, default=None, help='Output size WxH, e.g. 1080x1920')
     args = parser.parse_args()
 
     if args.size:
