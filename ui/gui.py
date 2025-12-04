@@ -125,7 +125,202 @@ class CollageWindow(tk.Toplevel):
 	def init_layout(self, layout_name):
 		if layout_name == '3-vertical':
 			self.init_three_vertical()
-		# Future: elif layout_name == ...
+		elif layout_name == '4-vertical':
+			self.init_four_vertical()
+		elif layout_name == '4-grid':
+			self.init_four_grid()
+		elif layout_name == '5-2-3':
+			self.init_five_two_three()
+		elif layout_name == '5-3-2':
+			self.init_five_three_two()
+	def init_four_vertical(self):
+		w, h = self.output_size
+		heights = [h//4]*3 + [h - 3*(h//4)]
+		y_positions = [0, heights[0], heights[0]+heights[1], heights[0]+heights[1]+heights[2]]
+		for i in range(4):
+			px, py, pw, ph = self.scale_coords(0, y_positions[i], w, heights[i])
+			tile = Tile(self.canvas, px, py, pw, ph, i, self.check_export)
+			self.tiles.append(tile)
+		for i in range(3):
+			px, py, pw, ph = self.scale_coords(0, y_positions[i]+heights[i]-5, w, 10)
+			bar = VerticalDragBar(self.canvas, px, py, pw, ph, lambda dy, idx=i: self.resize_tiles_vertical(idx, dy, 4))
+			self.drag_bars.append(bar)
+
+	def resize_tiles_vertical(self, idx, dy, n):
+		prev_h = self.preview_size[1]
+		out_h = self.output_size[1]
+		scale = out_h / prev_h
+		dy_out = int(dy * scale)
+		w, h = self.output_size
+		heights = [self.tiles[i].h for i in range(n)]
+		for i in range(n):
+			_, _, _, ph = self.inv_scale_coords(0, 0, 0, self.tiles[i].h)
+			heights[i] = ph
+		heights[idx] += dy_out
+		heights[idx+1] -= dy_out
+		min_h = int(50 * scale)
+		if heights[idx] < min_h or heights[idx+1] < min_h:
+			return
+		y_positions = [0]
+		for i in range(n-1):
+			y_positions.append(y_positions[-1] + heights[i])
+		for i in range(n):
+			px, py, pw, ph = self.scale_coords(0, y_positions[i], w, heights[i])
+			self.tiles[i].update_size(px, py, pw, ph)
+		for i in range(n-1):
+			px, py, pw, ph = self.scale_coords(0, y_positions[i]+heights[i]-5, w, 10)
+			self.drag_bars[i].update_position(px, py, pw, ph)
+
+	def init_four_grid(self):
+		w, h = self.output_size
+		# Initial split: 2x2 grid
+		widths = [w//2, w - w//2]
+		heights = [h//2, h - h//2]
+		positions = [
+			(0, 0, widths[0], heights[0]),
+			(widths[0], 0, widths[1], heights[0]),
+			(0, heights[0], widths[0], heights[1]),
+			(widths[0], heights[0], widths[1], heights[1])
+		]
+		for i, (x, y, tw, th) in enumerate(positions):
+			px, py, pw, ph = self.scale_coords(x, y, tw, th)
+			tile = Tile(self.canvas, px, py, pw, ph, i, self.check_export)
+			self.tiles.append(tile)
+		# Add vertical and horizontal drag bars
+		# Vertical bar
+		px, py, pw, ph = self.scale_coords(widths[0]-5, 0, 10, h)
+		vbar = VerticalDragBar(self.canvas, px, py, pw, ph, lambda dx: self.resize_grid_vertical(dx, widths, heights))
+		self.drag_bars.append(vbar)
+		# Horizontal bar
+		px, py, pw, ph = self.scale_coords(0, heights[0]-5, w, 10)
+		hbar = VerticalDragBar(self.canvas, px, py, pw, ph, lambda dy: self.resize_grid_horizontal(dy, widths, heights, w, h),)
+		self.drag_bars.append(hbar)
+
+	def resize_grid_vertical(self, dx, widths, heights):
+		prev_w = self.preview_size[0]
+		out_w = self.output_size[0]
+		scale = out_w / prev_w
+		dx_out = int(dx * scale)
+		min_w = int(50 * scale)
+		widths[0] += dx_out
+		widths[1] -= dx_out
+		if widths[0] < min_w or widths[1] < min_w:
+			return
+		w, h = self.output_size
+		positions = [
+			(0, 0, widths[0], heights[0]),
+			(widths[0], 0, widths[1], heights[0]),
+			(0, heights[0], widths[0], heights[1]),
+			(widths[0], heights[0], widths[1], heights[1])
+		]
+		for i, (x, y, tw, th) in enumerate(positions):
+			px, py, pw, ph = self.scale_coords(x, y, tw, th)
+			self.tiles[i].update_size(px, py, pw, ph)
+		# Update drag bars
+		px, py, pw, ph = self.scale_coords(widths[0]-5, 0, 10, h)
+		self.drag_bars[0].update_position(px, py, pw, ph)
+		px, py, pw, ph = self.scale_coords(0, heights[0]-5, w, 10)
+		self.drag_bars[1].update_position(px, py, pw, ph)
+
+	def resize_grid_horizontal(self, dy, widths, heights, w, h):
+		prev_h = self.preview_size[1]
+		out_h = self.output_size[1]
+		scale = out_h / prev_h
+		dy_out = int(dy * scale)
+		min_h = int(50 * scale)
+		heights[0] += dy_out
+		heights[1] -= dy_out
+		if heights[0] < min_h or heights[1] < min_h:
+			return
+		positions = [
+			(0, 0, widths[0], heights[0]),
+			(widths[0], 0, widths[1], heights[0]),
+			(0, heights[0], widths[0], heights[1]),
+			(widths[0], heights[0], widths[1], heights[1])
+		]
+		for i, (x, y, tw, th) in enumerate(positions):
+			px, py, pw, ph = self.scale_coords(x, y, tw, th)
+			self.tiles[i].update_size(px, py, pw, ph)
+		# Update drag bars
+		px, py, pw, ph = self.scale_coords(widths[0]-5, 0, 10, h)
+		self.drag_bars[0].update_position(px, py, pw, ph)
+		px, py, pw, ph = self.scale_coords(0, heights[0]-5, w, 10)
+		self.drag_bars[1].update_position(px, py, pw, ph)
+
+	def init_five_two_three(self):
+		w, h = self.output_size
+		wcol = w // 2
+		h_left = [h//2, h - h//2]
+		h_right = [h//3, h//3, h - 2*(h//3)]
+		# Left column (2 tiles)
+		for i in range(2):
+			px, py, pw, ph = self.scale_coords(0, sum(h_left[:i]), wcol, h_left[i])
+			tile = Tile(self.canvas, px, py, pw, ph, i, self.check_export)
+			self.tiles.append(tile)
+		# Right column (3 tiles)
+		for i in range(3):
+			px, py, pw, ph = self.scale_coords(wcol, sum(h_right[:i]), w-wcol, h_right[i])
+			tile = Tile(self.canvas, px, py, pw, ph, i+2, self.check_export)
+			self.tiles.append(tile)
+		# Drag bars for left column
+		px, py, pw, ph = self.scale_coords(0, h_left[0]-5, wcol, 10)
+		bar_left = VerticalDragBar(self.canvas, px, py, pw, ph, lambda dy: self.resize_tiles_column(dy, h_left, 2, 0, wcol))
+		self.drag_bars.append(bar_left)
+		# Drag bars for right column
+		for i in range(2):
+			px, py, pw, ph = self.scale_coords(wcol, h_right[i]-5+sum(h_right[:i]), w-wcol, 10)
+			bar = VerticalDragBar(self.canvas, px, py, pw, ph, lambda dy, idx=i: self.resize_tiles_column(dy, h_right, 3, 2, w-wcol, idx))
+			self.drag_bars.append(bar)
+
+	def init_five_three_two(self):
+		w, h = self.output_size
+		wcol = w // 2
+		h_left = [h//3, h//3, h - 2*(h//3)]
+		h_right = [h//2, h - h//2]
+		# Left column (3 tiles)
+		for i in range(3):
+			px, py, pw, ph = self.scale_coords(0, sum(h_left[:i]), wcol, h_left[i])
+			tile = Tile(self.canvas, px, py, pw, ph, i, self.check_export)
+			self.tiles.append(tile)
+		# Right column (2 tiles)
+		for i in range(2):
+			px, py, pw, ph = self.scale_coords(wcol, sum(h_right[:i]), w-wcol, h_right[i])
+			tile = Tile(self.canvas, px, py, pw, ph, i+3, self.check_export)
+			self.tiles.append(tile)
+		# Drag bars for left column
+		for i in range(2):
+			px, py, pw, ph = self.scale_coords(0, h_left[i]-5+sum(h_left[:i]), wcol, 10)
+			bar = VerticalDragBar(self.canvas, px, py, pw, ph, lambda dy, idx=i: self.resize_tiles_column(dy, h_left, 3, 0, wcol, idx))
+			self.drag_bars.append(bar)
+		# Drag bar for right column
+		px, py, pw, ph = self.scale_coords(wcol, h_right[0]-5, w-wcol, 10)
+		bar_right = VerticalDragBar(self.canvas, px, py, pw, ph, lambda dy: self.resize_tiles_column(dy, h_right, 2, 3, w-wcol))
+		self.drag_bars.append(bar_right)
+
+	def resize_tiles_column(self, dy, heights, n, tile_offset, col_width, idx=0):
+		prev_h = self.preview_size[1]
+		out_h = self.output_size[1]
+		scale = out_h / prev_h
+		dy_out = int(dy * scale)
+		heights[idx] += dy_out
+		heights[idx+1] -= dy_out
+		min_h = int(50 * scale)
+		if heights[idx] < min_h or heights[idx+1] < min_h:
+			return
+		y_positions = [0]
+		for i in range(n-1):
+			y_positions.append(y_positions[-1] + heights[i])
+		for i in range(n):
+			px, py, pw, ph = self.scale_coords((0 if tile_offset==0 else col_width), y_positions[i], col_width, heights[i])
+			self.tiles[tile_offset+i].update_size(px, py, pw, ph)
+		# Update drag bars
+		if n == 2:
+			px, py, pw, ph = self.scale_coords((0 if tile_offset==0 else col_width), heights[0]-5, col_width, 10)
+			self.drag_bars[-1].update_position(px, py, pw, ph)
+		else:
+			for i in range(n-1):
+				px, py, pw, ph = self.scale_coords((0 if tile_offset==0 else col_width), heights[i]-5+y_positions[i], col_width, 10)
+				self.drag_bars[tile_offset+i].update_position(px, py, pw, ph)
 
 	def init_three_vertical(self):
 		w, h = self.output_size
@@ -211,7 +406,7 @@ class LayoutSelector(tk.Tk):
 		self.title('Choose Collage Layout')
 		self.geometry('400x300')
 		self.selected_layout = tk.StringVar()
-		layouts = ['3-vertical'] # Future: add more
+		layouts = ['3-vertical', '4-vertical', '4-grid', '5-2-3', '5-3-2']
 		for i, layout in enumerate(layouts):
 			btn = tk.Radiobutton(self, text=layout, variable=self.selected_layout, value=layout)
 			btn.pack(anchor='w', padx=20, pady=10)
