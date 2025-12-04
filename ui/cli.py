@@ -8,7 +8,7 @@ import sys
 
 def main():
     parser = argparse.ArgumentParser(description='Create a photo collage.')
-    parser.add_argument('style', choices=['3-vertical', '4-vertical', '4-grid', '5-2-3'], help='Collage style')
+    parser.add_argument('style', choices=['3-vertical', '4-vertical', '4-grid', '5-2-3', '5-3-2'], help='Collage style')
     parser.add_argument('images', nargs='+', help='Paths to images')
     parser.add_argument('-o', '--output', default='collage.jpg', help='Output file name')
     parser.add_argument('-s', '--size', type=str, default=None, help='Output size WxH, e.g. 1080x1920')
@@ -46,6 +46,12 @@ def main():
             print('Provide exactly 5 valid image paths.')
             sys.exit(1)
         positions = layout_five_two_three(output_size)
+    elif args.style == '5-3-2':
+        if not validate_images(args.images, 5, 5):
+            print('Provide exactly 5 valid image paths.')
+            sys.exit(1)
+        from collage.layouts import layout_five_three_two
+        positions = layout_five_three_two(output_size)
     else:
         print('Unknown style.')
         sys.exit(1)

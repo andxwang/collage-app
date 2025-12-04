@@ -43,3 +43,20 @@ def layout_five_two_three(output_size: Tuple[int, int]):
         (w, 2*h_right, w, h_right)
     ]
     return positions
+
+def layout_five_three_two(output_size: Tuple[int, int]):
+    width, height = output_size
+    w = width // 2
+    h = height
+    # Left column: 3 photos
+    h_left = h // 3
+    # Right column: 2 photos
+    h_right = h // 2
+    positions = [
+        (0, 0, w, h_left),
+        (0, h_left, w, h_left),
+        (0, 2*h_left, w, h_left),
+        (w, 0, w, h_right),
+        (w, h_right, w, h_right)
+    ]
+    return positions
